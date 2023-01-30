@@ -1,0 +1,13 @@
+textarea {
+    min-height: 400px;
+}
+
+.mail {
+    border: 1px solid black;
+    border-radius: 20px;
+}
+
+.timestamp {
+    float: right;
+    font-size: 100px;
+}
