@@ -19,15 +19,13 @@ function send_email() {
   })
   .then(response => response.json())
   .then(result => {
-      console.log(result);
-
-      if(result.message) {
-        load_mailbox('sent');
-      } else {
-        document.querySelector('#compose-recipients').value = result.error;
-        document.querySelector('#compose-subject').value = result.error;
-        document.querySelector('#compose-body').value = result.error;
-      }
+    if(result.message) {
+      load_mailbox('sent');
+    } else {
+      document.querySelector('#compose-recipients').value = result.error;
+      document.querySelector('#compose-subject').value = result.error;
+      document.querySelector('#compose-body').value = result.error;
+    }
   });
 }
 
@@ -178,35 +176,42 @@ function load_mailbox(mailbox) {
 
   //Function to append all the emails to the div all-emails, which shows the emails
   function append_mails(emails) {
-    emails.forEach(email => {
-      const email_div = document.createElement('div');
-
-      if (email.read === true) {
-        email_div.className = 'mail read';
-      } else {
-        email_div.className = 'mail';
-      } 
-      email_div.id = email.id;
-
-      email_div.innerHTML = `
-        <b>${email.sender}:</b>
-        &nbsp;&nbsp;&nbsp;
-        ${email.subject}
-        <p style='display:inline;float:right'>${email.timestamp}</p>`;
-
-      const line_break = document.createElement('br');
-
-      document.querySelector('#all-emails').append(email_div, line_break);
-    })
-
-    document.querySelector('#all-emails').style.display = 'block';
-
-    //Search for click on email
-    document.querySelectorAll('.mail').forEach((email) => {
-      email.onclick = () => {
-        show_email(email);
-      }
-    });
+    if (emails.length === 0) {
+      const no_mails = document.createElement('h3');
+      no_mails.innerHTML = 'No mails in this section.';
+      document.querySelector('#all-emails').append(no_mails);
+      document.querySelector('#all-emails').style.display = 'block';
+    } else {
+      emails.forEach(email => {
+        const email_div = document.createElement('div');
+  
+        if (email.read === true) {
+          email_div.className = 'mail read';
+        } else {
+          email_div.className = 'mail';
+        } 
+        email_div.id = email.id;
+  
+        email_div.innerHTML = `
+          <b>${email.sender}:</b>
+          &nbsp;&nbsp;&nbsp;
+          ${email.subject}
+          <p style='display:inline;float:right'>${email.timestamp}</p>`;
+  
+        const line_break = document.createElement('br');
+  
+        document.querySelector('#all-emails').append(email_div, line_break);
+      })
+  
+      document.querySelector('#all-emails').style.display = 'block';
+  
+      //Search for click on email
+      document.querySelectorAll('.mail').forEach((email) => {
+        email.onclick = () => {
+          show_email(email);
+        }
+      });
+    }
 
   }
 
