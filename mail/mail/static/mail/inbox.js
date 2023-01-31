@@ -1,11 +1,35 @@
-function sleep(milliseconds) {
-  const date = Date.now();
+//Function that waits a given amount of miniseconds, to ensure all calls to the database are done.
+function wait(milliseconds) {
+  const this_date = Date.now();
   let currentDate = null;
   do {
     currentDate = Date.now();
-  } while (currentDate - date < milliseconds);
+  } while (currentDate - this_date < milliseconds);
 }
 
+//Function that sends a mail to given recipients
+function send_email() {
+  fetch('/emails', {
+    method: 'POST',
+    body: JSON.stringify({
+        recipients: document.querySelector('#compose-recipients').value,
+        subject: document.querySelector('#compose-subject').value,
+        body: document.querySelector('#compose-body').value
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
+      console.log(result);
+
+      if(result.message) {
+        load_mailbox('sent');
+      } else {
+        document.querySelector('#compose-recipients').value = result.error;
+        document.querySelector('#compose-subject').value = result.error;
+        document.querySelector('#compose-body').value = result.error;
+      }
+  });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -29,11 +53,17 @@ function compose_email() {
   document.querySelector('#compose-recipients').value = '';
   document.querySelector('#compose-subject').value = '';
   document.querySelector('#compose-body').value = '';
+
+  //On submit, send the email
+  document.querySelector('#compose-form').onsubmit = () => {
+    send_email();
+    return false;
+  }
 }
 
 function load_mailbox(mailbox) {
 
-  //Archive a given email
+  //Function to archive a given email
   function archive_email(email) {
     if (email.archived === false) {
       fetch(`/emails/${email.id}`, {
@@ -51,23 +81,21 @@ function load_mailbox(mailbox) {
       })
     }
 
-    //Wait for 10 seconds to let the PUT method finish
-    sleep(10);
+    //Wait for 10 milli-seconds to let the PUT method finish and the change to the database complete
+    //Weirdly enough 10 milli-seconds is enough, but not waiting is not.
+    wait(10);
 
     document.querySelector('#one-email').style.display = 'none';
     load_mailbox('inbox');
-    
   }
 
 
-  //Fill in the data when replying to an email
+  //Function to fill in the data when replying to an email
   function reply_to_email(email) {
     document.querySelector('#compose-recipients').value = email.sender;
 
     let new_subject = email.subject;
-    if (new_subject.charAt(0) === 'R' && new_subject.charAt(1) === 'e' && new_subject.charAt(2) == ':') {
-      pass;
-    } else {
+    if (!(new_subject.charAt(0) === 'R' && new_subject.charAt(1) === 'e' && new_subject.charAt(2) == ':')) {
       new_subject = 'Re: ' + new_subject;
     }
 
@@ -78,9 +106,14 @@ function load_mailbox(mailbox) {
 
     document.querySelector('#emails-view').style.display = 'none';
     document.querySelector('#compose-view').style.display = 'block';
+
+    document.querySelector('#compose-form').onsubmit = () => {
+      send_email();
+      return false;
+    }
   }
 
-  //Show all data from a given email when clicked on
+  //Functio to show all data from a given email when clicked on
   function show_email(email) {
     document.querySelector('#all-emails').style.display = 'none';
 
@@ -94,14 +127,23 @@ function load_mailbox(mailbox) {
         let hidden_atr = '';
 
         if (mailbox === 'archive') {
-          archive_btn_text = 'De-Archive';
+          archive_btn_text = 'Unarchive';
         } else if (mailbox === 'inbox') {
           archive_btn_text = 'Archive';
+
+          if (email.read === false) {
+            fetch(`/emails/${email.id}`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                  read: true
+              })
+            })
+          }
+
         } else {
           hidden_atr = 'hidden';
         }
         
-
         document.querySelector('#one-email').innerHTML = `
           <b>From: </b>
           ${email.sender}
@@ -120,10 +162,12 @@ function load_mailbox(mailbox) {
         <hr>${email.body}`;
 
 
+        //When user clicks on 'Reply'
         document.querySelector('#reply_btn').onclick = () => {
           reply_to_email(email);
         }
 
+        //When user clicks on 'Archive' or 'Unarchive'
         document.querySelector('#archive_btn').onclick = () => {
           archive_email(email);
         }
@@ -132,11 +176,16 @@ function load_mailbox(mailbox) {
   }
 
 
-  //Append all the mails to the div all-emails, which shows the emails
+  //Function to append all the emails to the div all-emails, which shows the emails
   function append_mails(emails) {
     emails.forEach(email => {
       const email_div = document.createElement('div');
-      email_div.className = 'mail';
+
+      if (email.read === true) {
+        email_div.className = 'mail read';
+      } else {
+        email_div.className = 'mail';
+      } 
       email_div.id = email.id;
 
       email_div.innerHTML = `
@@ -161,7 +210,7 @@ function load_mailbox(mailbox) {
 
   }
 
-  //Get all the mails of the given inbox
+  //Function to get all the emails of the given inbox
   function get_all_mails() {
 
     // Show the mailbox name
@@ -189,5 +238,6 @@ function load_mailbox(mailbox) {
   document.querySelector('#all-emails').style.display = 'none';
   document.querySelector('#one-email').style.display = 'none';
 
+  //Get all emails
   get_all_mails();
 }

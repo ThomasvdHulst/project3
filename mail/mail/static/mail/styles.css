@@ -7,6 +7,10 @@ textarea {
     border-radius: 20px;
 }
 
+.read {
+    background-color: lightgrey;
+}
+
 .timestamp {
     float: right;
     font-size: 100px;
